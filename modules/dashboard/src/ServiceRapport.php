@@ -98,14 +98,17 @@ class ServiceRapport
     
 
         $current_date = \Drupal::service('datetime.time')->getCurrentTime();
-        $first_day_of_month = date('Y-m-d', strtotime('first day of this month', $current_date));
-        $last_day_of_month = date('Y-m-d', strtotime('last day of this month', $current_date));
-        
+        $first_day_of_month = strtotime('first day of this month', $current_date);
+        $last_day_of_month =  strtotime('last day of this month', $current_date);
+       // $date_string = '2024/10/15';
+       // $first_day_of_month = strtotime('2025-06-01');
+       // $last_day_of_month = strtotime( '2025-06-07');
         if(isset($dates['date_start'])  &&  $dates['date_start'] !=''){
-            $first_day_of_month = $dates['date_start'];
+            
+            $first_day_of_month = strtotime($dates['date_start']);
         }
         if(isset($dates['date_end'])  &&  $dates['date_end'] !='' ){
-            $last_day_of_month = $dates['date_end'];
+            $last_day_of_month = strtotime($dates['date_end']);
         }
         if(isset($dates['date_start'])  &&  $dates['date_start'] !='' && 
            isset($dates['date_end'])  &&  $dates['date_end'] !=''){
@@ -114,49 +117,52 @@ class ServiceRapport
                return false ;
             }
         }
+      //  kint([$first_day_of_month, $last_day_of_month]);
 
 
                 // Step 1: Build the database query on 'node_field_data' table.
-                $query = Database::getConnection()->select('node_field_data', 'nfd');
-
+                $query = Database::getConnection()->select('paragraph__field_article', 'article');
                 // Join the paragraph table for 'field_quantite' (quantity of articles).
-                $query->join('paragraph__field_quantite', 'pq', 'nfd.nid = pq.entity_id');
+                $query->join('paragraph__field_quantite', 'qt', 'article.entity_id = qt.entity_id');
 
                 // Join the paragraph table for 'field_article' (referenced article).
-                $query->join('paragraph__field_article', 'pra', 'pq.entity_id = pra.entity_id');
-                $query->join('node__field_date', 'date', 'nfd.nid = date.entity_id ');
-                $query->join('paragraph__field_prix_unitaire', 'pu', 'nfd.nid = pu.entity_id ');
+                $query->join('paragraphs_item_field_data', 'data', 'article.entity_id = data.id ');
+                $query->join('paragraph__field_prix_unitaire', 'pu', 'article.entity_id = pu.entity_id ');
       
-                // Add conditions to filter the right nodes.
-                $query->condition('nfd.type', 'commande');  // Filter by content type 'commande'.
-                //$query->condition('nfd.status', 1);  // Only published nodes.
-                $query->condition('date.field_date_value', [$first_day_of_month, $last_day_of_month], 'BETWEEN');
-                if(isset( $dates['article_id']) &&  $dates['article_id'] !=''){
-                    $query->condition('pra.field_article_target_id', $dates['article_id']);
-                }
+                // // Add conditions to filter the right nodes.
+                $query->condition('article.bundle', 'commande');  // Filter by content type 'commande'.
+                // //$query->condition('nfd.status', 1);  // Only published nodes.
+               $query->condition('data.created', [$first_day_of_month, $last_day_of_month], 'BETWEEN');
+                 if(isset( $dates['article_id']) &&  $dates['article_id'] !=''){
+                     $query->condition('article.field_article_target_id', $dates['article_id']);
+                 }
   
                 // Group by the referenced article ID.
-                $query->groupBy('pra.field_article_target_id');
+               $query->groupBy('article.field_article_target_id');
+                $query->addExpression('SUM(qt.field_quantite_value)', 'total_quantity'); // Sum of quantities.
+                $query->addExpression('SUM(pu.field_prix_unitaire_value*qt.field_quantite_value)', 'total_vente'); // Sum of quantities.
+                 // Add an expression to count the number of articles (distinct).
+                $query->addExpression('COUNT(article.entity_id)', 'repeat_count'); // Count occurrences of the same article.
 
-                // Select the fields.
+            
 
-                $query->addField('pra', 'field_article_target_id', 'article_nid'); // Article ID as 'article_nid'.
-                $query->addExpression('SUM(pq.field_quantite_value)', 'total_quantity'); // Sum of quantities.
-                $query->addExpression('SUM(pq.field_quantite_value * pu.field_prix_unitaire_value)', 'total_vente'); // Sum of quantities.
-             
-                // Add an expression to count the number of articles (distinct).
-                $query->addExpression('COUNT(pq.entity_id)', 'repeat_count'); // Count occurrences of the same article.
-
+                
+              //  $query->addField('data', 'created', 'date'); // Article ID as 'article_nid'.
+               
+                $query->addField('article', 'field_article_target_id', 'article_nid'); // Article ID as 'article_nid'.
+         
+              
                 // Order by the total quantity sold in descending order.
-                $query->orderBy('total_quantity', 'DESC');
+              //  $query->orderBy('total_quantity', 'DESC');
 
                 // Limit the query to the top 5 results.
-               // $query->range(0, 50);
+              //  $query->range(0, 50);
                 // Execute the query.
                 $result = $query->execute();
          
                 // Fetch the results as an associative array.
                 $rows = array_values($result->fetchAll());
+       
                 $items = [];
                 if(!empty($rows)){
                     $service = \Drupal::service('entity_parser.manager');
@@ -166,13 +172,15 @@ class ServiceRapport
                             $items[] = [
                                 'title' => $article['title'],
                                 'article_nid' => $r->article_nid,   
-                                'total_quantity' => $r->total_quantity,
+                                'total_quantity' => $r->total_quantity,                            
                                 'repeat_count' => $r->repeat_count,    
-                                'total_vente' => $r->total_vente,      
+                                'total_vente' => $r->total_vente,     
+                                       
                             ]; 
                         }                
                     }
                 }
+               
                 return  $items ;
 
 
