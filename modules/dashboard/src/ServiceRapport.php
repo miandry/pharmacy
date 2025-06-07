@@ -127,15 +127,26 @@ class ServiceRapport
 
                 // Join the paragraph table for 'field_article' (referenced article).
                 $query->join('paragraphs_item_field_data', 'data', 'article.entity_id = data.id ');
+                $query->join('node__field_status', 'status', 'data.parent_id = status.entity_id ');
+                
                 $query->join('paragraph__field_prix_unitaire', 'pu', 'article.entity_id = pu.entity_id ');
       
                 // // Add conditions to filter the right nodes.
                 $query->condition('article.bundle', 'commande');  // Filter by content type 'commande'.
                 // //$query->condition('nfd.status', 1);  // Only published nodes.
-               $query->condition('data.created', [$first_day_of_month, $last_day_of_month], 'BETWEEN');
+               
+                //if($first_day_of_month == $last_day_of_month){
+                   // $query->condition('data.created', $first_day_of_month,'>=');
+                   // $query->condition('data.created', $last_day_of_month,'<=');
+              //  }else{
+                    $query->condition('data.created', [$first_day_of_month, $last_day_of_month], 'BETWEEN');
+              //  }
+   
+
                  if(isset( $dates['article_id']) &&  $dates['article_id'] !=''){
                      $query->condition('article.field_article_target_id', $dates['article_id']);
                  }
+                 $query->condition('status.field_status_value', 'payed');
   
                 // Group by the referenced article ID.
                $query->groupBy('article.field_article_target_id');
