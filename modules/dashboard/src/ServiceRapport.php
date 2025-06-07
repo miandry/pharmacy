@@ -164,7 +164,7 @@ class ServiceRapport
          
               
                 // Order by the total quantity sold in descending order.
-              //  $query->orderBy('total_quantity', 'DESC');
+                $query->orderBy('total_quantity', 'DESC');
 
                 // Limit the query to the top 5 results.
               //  $query->range(0, 50);
