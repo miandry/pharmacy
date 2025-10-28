@@ -51,14 +51,14 @@ function computed_field_field_benefice_compute($entity_type_manager, $entity, $f
 }
 
 function stock_management_node_delete(\Drupal\node\Entity\Node $entity){
-    if($entity->bundle() == 'stock'){
-        $service = \Drupal::service('stock_management.manager');
-        $service->updateStockNumberOnDeleteStock($entity);
-    }
-    if($entity->bundle() == 'defectueux'){
-       $service = \Drupal::service('stock_management.manager');
-       $service->addStockNumberOnDeleteDefecteux($entity);
-    }
+    // if($entity->bundle() == 'stock'){
+    //     $service = \Drupal::service('stock_management.manager');
+    //     $service->updateStockNumberOnDeleteStock($entity);
+    // }
+    // if($entity->bundle() == 'defectueux'){
+    //    $service = \Drupal::service('stock_management.manager');
+    //    $service->addStockNumberOnDeleteDefecteux($entity);
+    // }
 }
 
 function stock_management_node_insert(\Drupal\node\Entity\Node $entity) {
